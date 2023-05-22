@@ -1,10 +1,15 @@
 
-from flask import Blueprint,Response,request,json
+from flask import Blueprint,Response,request,json,make_response
 from .db import get_db
 from .auth import middleware
+from .utils import build_preflight_response,build_actual_response
 
 bp = Blueprint("todo",__name__,url_prefix='/todos')
 
+@bp.route('/',methods=["OPTIONS"])
+def preflight_response():
+    response = make_response()
+    return build_preflight_response(response)
 
 @bp.route("/",methods=["GET"])
 @middleware
@@ -23,7 +28,7 @@ def get_todos(email):
         status=200,
         mimetype="application/json"
     )
-    return res
+    return build_actual_response(res)
 
 
 @bp.route('/',methods=["POST"])
@@ -44,29 +49,31 @@ def create_todo(email):
 
     # the case where the user is not possible to "create a task"
     if("create" not in roles):
-        return Response(
+        res = Response(
             response=json.dumps({"details": "user is not allowed to create a task"}),
             status=403,
             mimetype="application/json"
         )
+        return build_actual_response(res)
     
     # create the task in the table
     try:
         db.execute("INSERT INTO todos (message,user_id) VALUES (?,?)",(message,user["id"]))
         db.commit()
     except:
-        return Response(
+        res = Response(
             response=json.dumps({"message": "Internal Error"}),
             status=500,
             mimetype="application/json"
         )
+        return build_actual_response(res)
 
     res = Response(
         response=json.dumps({"details": "sucessfully created"}),
         status=201,
         mimetype="application/json"
     )
-    return res
+    return build_actual_response(res)
 
 
 @bp.route('/',methods=["PUT"])
@@ -88,28 +95,30 @@ def update_todo(email):
 
     # the case where the user can't update a task
     if("edit" not in roles):
-        return Response(
+        res = Response(
             response=json.dumps({"details": "user is not allowed to update a task"}),
             status=403,
             mimetype="application/json"
         )
+        return build_actual_response(res)
     
     try:
         db.execute("UPDATE todos SET message = ? where user_id = ? AND id = ?",(message,user["id"],todoId))
         db.commit()
     except:
-        return Response(
+        res = Response(
             response=json.dumps({"message": "Internal Error"}),
             status=500,
             mimetype="application/json"
         )
+        return build_actual_response(res)
     
     res = Response(
         response=json.dumps({"details": "sucessfully updated"}),
         status=200,
         mimetype="application/json"
     )
-    return res
+    return build_actual_response(res)
 
 
 @bp.route("/",methods=["DELETE"])
@@ -131,26 +140,27 @@ def delete_todo(email):
 
     # the case where the user can't update a task
     if("delete" not in roles):
-        return Response(
+        res = Response(
             response=json.dumps({"details": "user is not allowed to delete a task"}),
             status=403,
             mimetype="application/json"
         )
+        return build_actual_response(res)
     
     try:
         db.execute("DELETE from todos WHERE user_id = ? AND id = ?",(user["id"],todoId))
         db.commit()
     except Exception as e:
-        print(e)
-        return Response(
+        res = Response(
             response=json.dumps({"message": "Internal Error"}),
             status=500,
             mimetype="application/json"
         )
+        return build_actual_response(res)
     
     res = Response(
         response=json.dumps({"details": "sucessfully deleted"}),
         status=200,
         mimetype="application/json"
     )
-    return res
+    return build_actual_response(res)

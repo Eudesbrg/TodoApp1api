@@ -1,13 +1,11 @@
 import os
 from flask import Flask
-from flask_cors import CORS
 
 
 def create_app(test_config=None):
 
     # create and configure the app
     app = Flask(__name__)
-    CORS(app)
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE_URI=os.path.join(app.instance_path,'api.sqlite'),
@@ -36,7 +34,7 @@ def create_app(test_config=None):
     app.register_blueprint(todo.bp)
 
     # test route
-    @app.route('/hello')
+    @app.route('/')
     def hello():
         return "hello"
     
